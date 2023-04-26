@@ -422,6 +422,62 @@ final class PVEmulatorViewController: PVEmulatorViewControllerRootClass, PVAudio
             })
 		}
         enableControllerInput(false)
+        
+        // 双击加载
+        let loadLab = UILabel(frame: CGRect(x: 0, y: 0, width: 100, height: 50))
+        loadLab.text = "doubleLoad"
+        loadLab.sizeToFit()
+        loadLab.frame = CGRect(x: 15, y: self.view.bounds.height-220, width: loadLab.bounds.width, height: 50)
+        loadLab.textColor = UIColor(hex: "#007AFF")
+        self.view.addSubview(loadLab)
+        loadLab.isUserInteractionEnabled = true
+        let doubleTap = UITapGestureRecognizer { recognizer in
+            let filter: String = "core.identifier == \"" + (self.core.coreIdentifier ?? "") + "\""
+            let allSaves = self.game.saveStates.filter(filter).sorted(byKeyPath: "date", ascending: false)
+            let manualSaves = allSaves.filter("isAutosave == false")
+            if (manualSaves.count > 0) {
+                self.loadSaveState(manualSaves[0]);
+            }
+        }
+        doubleTap.numberOfTapsRequired = 2;
+        loadLab.addGestureRecognizer(doubleTap);
+        
+        // 保存按钮
+        let saveLab = UILabel(frame: CGRect(x: 0, y: 0, width: 100, height: 50))
+        saveLab.text = "save"
+        saveLab.sizeToFit()
+        saveLab.frame = CGRect(x: self.view.bounds.width-saveLab.bounds.width-15, y: self.view.bounds.height-220, width: saveLab.bounds.width, height: 50)
+        saveLab.textColor = UIColor(hex: "#007AFF")
+        self.view.addSubview(saveLab)
+        saveLab.isUserInteractionEnabled = true
+        saveLab.addGestureRecognizer(UITapGestureRecognizer { recognizer in
+            self.createNewSaveState(auto: false, screenshot: self.captureScreenshot()) { result in
+                print("save")
+            }
+        })
+        
+        // 新增速度按钮
+        let speedArr = ["1X", "2X", "3X", "4X", "5X", "6X", "8X", "10X"]
+        speedArr.enumerated().forEach { idx, speedVal in
+            let speedBtn = UIButton(type: .system)
+            speedBtn.setTitle(speedVal, for: .normal)
+            let btnWidth = self.view.bounds.width / CGFloat(speedArr.count)
+            speedBtn.frame = CGRect(x: CGFloat(idx)*btnWidth, y: self.view.bounds.height-160, width: btnWidth, height: 50)
+            self.view.addSubview(speedBtn)
+            speedBtn.tag = idx + 100
+            speedBtn.addTarget(self, action: #selector(speedBtnTap(_:)), for: .touchUpInside)
+        }
+    }
+    
+    // 点击变更速度
+    @objc func speedBtnTap(_ btn: UIButton) {
+        let title = btn.title(for: .normal)
+        let speedStr = title?.replacingOccurrences(of: "X", with: "")
+        let speed = Double(speedStr!) ?? 1.0
+        self.core.setValue(speed, forKey: "framerateMultiplier")
+        self.core.setPauseEmulation(false)
+        self.isShowingMenu = false
+        self.enableControllerInput(false)
     }
 
     public override func viewDidAppear(_: Bool) {
