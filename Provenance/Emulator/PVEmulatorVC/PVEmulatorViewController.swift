@@ -452,25 +452,52 @@ final class PVEmulatorViewController: PVEmulatorViewControllerRootClass, PVAudio
         saveLab.isUserInteractionEnabled = true
         saveLab.addGestureRecognizer(UITapGestureRecognizer { recognizer in
             self.createNewSaveState(auto: false, screenshot: self.captureScreenshot()) { result in
-                print("save")
+                switch result {
+                case .success:
+                    let hud = MBProgressHUD.showAdded(to: self.view, animated: true)
+                    hud?.detailsLabelText = "save success"
+                    hud?.mode = .text
+                    hud?.isUserInteractionEnabled = false
+                    hud?.hide(true, afterDelay: 1.5)
+                    break
+                case let .error(error):
+                    let reason = (error as NSError).localizedFailureReason ?? ""
+                    self.presentError("Error creating save state: \(error.localizedDescription) \(reason)")
+                }
             }
         })
         
         // 新增速度按钮
         let speedArr = ["1X", "2X", "3X", "4X", "5X", "6X", "8X", "10X"]
         speedArr.enumerated().forEach { idx, speedVal in
-            let speedBtn = UIButton(type: .system)
+            let speedBtn = UIButton(type: .custom)
             speedBtn.setTitle(speedVal, for: .normal)
+            speedBtn.setTitleColor(UIColor(hex: "#007AFF"), for: .normal)
+            speedBtn.setTitleColor(UIColor(hex: "#FF0000"), for: .selected)
             let btnWidth = self.view.bounds.width / CGFloat(speedArr.count)
             speedBtn.frame = CGRect(x: CGFloat(idx)*btnWidth, y: self.view.bounds.height-160, width: btnWidth, height: 50)
             self.view.addSubview(speedBtn)
-            speedBtn.tag = idx + 100
+            speedBtn.tag = idx + 20230427
             speedBtn.addTarget(self, action: #selector(speedBtnTap(_:)), for: .touchUpInside)
+            if (idx == 0) {
+                speedBtn.isSelected = true
+            }
         }
     }
     
     // 点击变更速度
     @objc func speedBtnTap(_ btn: UIButton) {
+        if (btn.isSelected) {
+            return
+        }
+        var index = 20230427
+        var button = self.view.viewWithTag(index) as? UIButton
+        while button != nil {
+            button?.isSelected = false
+            index += 1
+            button = self.view.viewWithTag(index) as? UIButton
+        }
+        btn.isSelected = true
         let title = btn.title(for: .normal)
         let speedStr = title?.replacingOccurrences(of: "X", with: "")
         let speed = Double(speedStr!) ?? 1.0
